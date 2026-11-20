@@ -1,0 +1,31 @@
+CHRONOLOGICAL SPLIT SUMMARY
+
+Validation starts: 2015-09-12 12:20:08+00:00
+Test starts: 2016-01-08 09:59:46+00:00
+Examples excluded for boundary label maturity: 1,262
+
+TRAIN
+Devices: 14,786
+Returning devices: 1,148
+Inactive devices: 13,638
+Prediction times: 2015-01-20 13:54:48+00:00
+              to: 2015-08-29 11:51:42+00:00
+
+VALIDATION
+Devices: 4,287
+Returning devices: 244
+Inactive devices: 4,043
+Prediction times: 2015-09-12 12:20:08+00:00
+              to: 2015-12-25 09:39:16+00:00
+
+TEST
+Devices: 5,084
+Returning devices: 286
+Inactive devices: 4,798
+Prediction times: 2016-01-08 09:59:46+00:00
+              to: 2016-05-10 11:42:06+00:00
+
+No scaling, imputation, or resampling has been fitted.
+Earlier descriptive EDA included the full dataset.
+Future model selection must use train/validation only.
+Reserve the test partition for final evaluation.

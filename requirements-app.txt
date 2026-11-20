@@ -1,0 +1,3 @@
+-r requirements-explain.txt
+psycopg[binary]
+python-dotenv

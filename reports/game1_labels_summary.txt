@@ -1,0 +1,47 @@
+GAME 1 — INITIAL CHURN LABEL AUDIT
+
+Observation window: 7 days
+Outcome window: 14 days
+Assumed coverage endpoint: 2016-05-24 12:17:25+00:00
+
+Missing-ID records excluded: 9
+Duplicate records excluded: 92
+Remaining gameplay records: 153,828
+Eligible devices: 25,419
+Devices excluded for incomplete follow-up: 537
+
+CLASS DISTRIBUTION
+churn=0: 1,740 (6.85%) — Returned during outcome window
+churn=1: 23,679 (93.15%) — Inactive throughout outcome window
+
+CHURN BY FIRST-OBSERVED MONTH
+              devices  churn_percent
+cohort_month                        
+2015-01          1665          91.53
+2015-02          2289          91.22
+2015-03          2222          91.22
+2015-04          1989          92.51
+2015-05          2248          92.79
+2015-06          1655          93.72
+2015-07          1642          93.06
+2015-08          1407          92.75
+2015-09          1169          93.67
+2015-10          1225          94.78
+2015-11          1266          94.63
+2015-12          1504          94.75
+2016-01          1838          94.45
+2016-02          1536          94.79
+2016-03           861          92.92
+2016-04           829          94.93
+2016-05            74          97.30
+
+LIMITATIONS
+- A device is a player proxy, not a verified individual.
+- First observed activity is not necessarily registration.
+- Complete recording through the endpoint is assumed.
+- Inactivity during the outcome window is not permanent churn.
+- Duplicate handling is a documented provisional rule.
+
+LEAKAGE WARNING
+outcome_event_count and outcome_end are audit/label fields.
+Do not use them as model features.

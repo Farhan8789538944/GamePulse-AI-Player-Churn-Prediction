@@ -1,0 +1,28 @@
+GAME 1 — INITIAL EXPLORATORY ANALYSIS
+
+Clean event records: 153,828
+Eligible devices: 25,419
+
+FUTURE INACTIVITY BY OBSERVED PLAY COUNT
+                devices  churn_percent
+activity_group                        
+1 play            11907          97.47
+2-4 plays          8480          94.68
+5-9 plays          2760          88.01
+10+ plays          2272          71.08
+
+MEDIAN OBSERVATION-WINDOW FEATURES BY OUTCOME
+0 = returned; 1 = inactive
+       plays_7d  active_days_7d  days_since_last_play  mean_score_7d  best_score_7d
+churn                                                                              
+0           6.0             2.0                  5.13         136.13          297.0
+1           2.0             1.0                  7.00          79.00          120.0
+
+RECENTLY ACTIVE COHORT — DIAGNOSTIC ONLY
+Devices with gameplay in the last 48 hours before cutoff:
+914
+Future inactivity in this cohort: 51.75%
+
+These are descriptive associations, not causal effects.
+The recently active cohort has not replaced our population.
+This EDA summary is not a model-ready feature dataset.

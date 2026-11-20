@@ -1,0 +1,286 @@
+from pathlib import Path
+import hashlib
+import json
+import math
+
+import joblib
+import numpy as np
+import pandas as pd
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "data" / "processed"
+RELEASE_DIR = ROOT / "artifacts" / "releases" / "v1"
+SEGMENT_DIR = ROOT / "artifacts" / "segmentation"
+REPORT_DIR = ROOT / "reports" / "recommendations"
+
+SEGMENT_NAMES = {
+    0: "Limited early activity",
+    1: "Higher early activity",
+}
+
+# Analyst-defined rules, not learned or validated interventions.
+RULE_CONFIG = {
+    "version": "rules_v1",
+    "recent_activity_days": 2.0,
+    "extended_inactivity_days": 5.0,
+}
+
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def recommend(
+    plays_7d,
+    days_since_last_play,
+    churn_probability,
+    threshold,
+    config,
+):
+    values = [
+        plays_7d,
+        days_since_last_play,
+        churn_probability,
+        threshold,
+    ]
+
+    if not all(math.isfinite(float(value)) for value in values):
+        raise ValueError("Recommendation inputs must be finite.")
+
+    if plays_7d < 1 or float(plays_7d) != int(plays_7d):
+        raise ValueError("plays_7d must be a positive integer.")
+
+    if not 0 <= days_since_last_play <= 7:
+        raise ValueError("Recency must be between 0 and 7 days.")
+
+    if not 0 <= churn_probability <= 1:
+        raise ValueError("Probability must be between 0 and 1.")
+
+    if not 0 < threshold < 1:
+        raise ValueError("Threshold must be between 0 and 1.")
+
+    predicted_inactive = churn_probability >= threshold
+
+    decision = (
+        "At or above inactivity decision threshold"
+        if predicted_inactive
+        else "Below inactivity decision threshold"
+    )
+
+    # Ordered rules: a device receives the first matching suggestion.
+    if plays_7d == 1:
+        rule_id = "single_observed_play"
+        reason = "Only one gameplay event occurred in the first seven days."
+        action = (
+            "Review the first-play experience for this cohort; "
+            "consider testing optional onboarding help or a return reminder."
+        )
+
+    elif days_since_last_play <= config["recent_activity_days"]:
+        rule_id = "recently_active"
+        reason = "Gameplay occurred within two days before prediction."
+        action = (
+            "Continue monitoring; consider testing relevant gameplay tips "
+            "or content discovery rather than an inactivity reminder."
+        )
+
+    elif (
+        days_since_last_play
+        > config["extended_inactivity_days"]
+    ):
+        rule_id = "extended_inactivity"
+        reason = "No gameplay was observed for more than five days before prediction."
+        action = (
+            "Consider testing a re-engagement reminder for this cohort "
+            "and investigate common points where activity stops."
+        )
+
+    elif predicted_inactive:
+        rule_id = "model_flagged"
+        reason = (
+            "The predicted inactivity probability meets the "
+            "frozen decision threshold."
+        )
+        action = (
+            "Review the player activity and model explanation before "
+            "choosing a retention experiment."
+        )
+
+    else:
+        rule_id = "monitor"
+        reason = (
+            "The probability is below the decision threshold, "
+            "with no earlier rule matching."
+        )
+        action = (
+            "Continue monitoring observed activity; being below the "
+            "threshold does not establish low risk."
+        )
+
+    return {
+        "rule_id": rule_id,
+        "decision": decision,
+        "reason": reason,
+        "suggested_action": action,
+    }
+
+
+def check_rule_boundaries(threshold):
+    """Check rule precedence, boundaries, and invalid input handling."""
+    def call(plays, recency, probability):
+        return recommend(
+            plays,
+            recency,
+            probability,
+            threshold,
+            RULE_CONFIG,
+        )
+
+    assert call(1, 7, 0.97)["rule_id"] == "single_observed_play"
+    assert call(5, 2, 0.97)["rule_id"] == "recently_active"
+    assert call(5, 5.01, 0.50)["rule_id"] == "extended_inactivity"
+    assert call(5, 5, threshold)["rule_id"] == "model_flagged"
+    assert call(5, 3, threshold - 0.01)["rule_id"] == "monitor"
+
+    assert (
+        call(5, 3, threshold)["decision"]
+        == "At or above inactivity decision threshold"
+    )
+
+    for invalid_probability in [-0.1, 1.1, float("nan")]:
+        try:
+            call(5, 3, invalid_probability)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Invalid probability was accepted.")
+
+
+def main():
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+    model_path = RELEASE_DIR / "model.joblib"
+    policy_path = RELEASE_DIR / "decision_policy.json"
+    segment_path = SEGMENT_DIR / "kmeans_pipeline.joblib"
+
+    final_results = json.loads(
+        (ROOT / "reports" / "final_test" / "metrics.json")
+        .read_text(encoding="utf-8")
+    )
+
+    if sha256(model_path) != final_results["model_sha256"]:
+        raise ValueError("Frozen churn model hash mismatch.")
+
+    if sha256(policy_path) != final_results["policy_sha256"]:
+        raise ValueError("Frozen decision policy hash mismatch.")
+
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    segment_metadata = json.loads(
+        (SEGMENT_DIR / "metadata.json").read_text(encoding="utf-8")
+    )
+
+    if segment_metadata["selected_k"] != 2:
+        raise ValueError("Segment names require the reviewed two-cluster model.")
+
+    threshold = float(policy["threshold"])
+    check_rule_boundaries(threshold)
+
+    model = joblib.load(model_path)
+    segment_model = joblib.load(segment_path)
+
+    validation = pd.read_parquet(
+        DATA_DIR / "game1_validation.parquet"
+    )
+
+    churn_index = list(model.classes_).index(1)
+    probabilities = model.predict_proba(
+        validation[policy["features"]]
+    )[:, churn_index]
+
+    segment_ids = segment_model.predict(
+        validation[segment_metadata["features"]]
+    )
+
+    if not set(np.unique(segment_ids)).issubset(SEGMENT_NAMES):
+        raise ValueError("Unexpected segment IDs.")
+
+    records = []
+
+    # Deliberately exclude actual outcomes from recommendation inputs.
+    for position, (_, row) in enumerate(validation.iterrows()):
+        probability = float(probabilities[position])
+        segment_id = int(segment_ids[position])
+
+        suggestion = recommend(
+            plays_7d=int(row["plays_7d"]),
+            days_since_last_play=float(row["days_since_last_play"]),
+            churn_probability=probability,
+            threshold=threshold,
+            config=RULE_CONFIG,
+        )
+
+        records.append({
+            "device": str(row["device"]),
+            "prediction_cutoff": row["cutoff"].isoformat(),
+            "churn_probability": probability,
+            "segment_id": segment_id,
+            "segment_name": SEGMENT_NAMES[segment_id],
+            "plays_7d": int(row["plays_7d"]),
+            "days_since_last_play": float(row["days_since_last_play"]),
+            **suggestion,
+            "model_version": "v1",
+            "rules_version": RULE_CONFIG["version"],
+        })
+
+    output = pd.DataFrame(records)
+
+    assert len(output) == len(validation)
+    assert output["device"].is_unique
+    assert output["rule_id"].notna().all()
+
+    output.to_csv(
+        REPORT_DIR / "validation_recommendations.csv",
+        index=False,
+    )
+
+    # Store labels tied to this exact segmentation artifact.
+    segment_labels = {
+        "segmentation_sha256": sha256(segment_path),
+        "names": {
+            str(key): value for key, value in SEGMENT_NAMES.items()
+        },
+        "basis": "Reviewed training behavioural profiles",
+    }
+
+    (SEGMENT_DIR / "segment_labels.json").write_text(
+        json.dumps(segment_labels, indent=2),
+        encoding="utf-8",
+    )
+
+    (REPORT_DIR / "rules_config.json").write_text(
+        json.dumps(RULE_CONFIG, indent=2),
+        encoding="utf-8",
+    )
+
+    print("Frozen churn model and policy hashes verified.")
+    print("Rule boundary and invalid-input checks passed.")
+    print(f"Devices processed: {len(output):,}")
+    print("Actual future outcomes were not used for recommendations.")
+
+    print("\nRECOMMENDATION COUNTS")
+    print(output["rule_id"].value_counts().to_string())
+
+    print("\nSEGMENT COUNTS")
+    print(output["segment_name"].value_counts().to_string())
+
+    print("\nEXAMPLE RECOMMENDATION")
+    print(json.dumps(records[0], indent=2))
+
+    print(f"\nReports saved to: {REPORT_DIR}")
+    print("These are analyst suggestions, not proven retention treatments.")
+    print("No messages were sent and no player actions were taken.")
+
+
+if __name__ == "__main__":
+    main()

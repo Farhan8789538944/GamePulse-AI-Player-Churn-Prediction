@@ -1,0 +1,96 @@
+{
+  "release": "v1",
+  "threshold": 0.94,
+  "test_devices": 5084,
+  "test_churn_prevalence": 0.9437450826121164,
+  "model_sha256": "34ac3df51ec554ab18be7dbc5ad8818a9708b14f1760304ba9ba6dcddead45cb",
+  "policy_sha256": "7b8b90b34676ea989b0ecdcbee40cdb1b911161def09dbeb0bd052f298b8d02a",
+  "test_file_sha256": "ffbd3549c9d6ed78db630cde83fecacbb7b7997361ef232088291cdfdff8d97e",
+  "model_metrics": {
+    "roc_auc": 0.7914730642429684,
+    "churn_average_precision": 0.9765583825677131,
+    "return_average_precision": 0.3577504963952613,
+    "brier_score": 0.04368581532807024,
+    "log_loss": 0.17316923616774932,
+    "accuracy": 0.8353658536585366,
+    "balanced_accuracy": 0.741795824017583
+  },
+  "classification_report": {
+    "returned": {
+      "precision": 0.1989071038251366,
+      "recall": 0.6363636363636364,
+      "f1-score": 0.30308076602830974,
+      "support": 286.0
+    },
+    "inactive": {
+      "precision": 0.9750539697769249,
+      "recall": 0.8472280116715298,
+      "f1-score": 0.9066577450652392,
+      "support": 4798.0
+    },
+    "accuracy": 0.8353658536585366,
+    "macro avg": {
+      "precision": 0.5869805368010308,
+      "recall": 0.741795824017583,
+      "f1-score": 0.6048692555467745,
+      "support": 5084.0
+    },
+    "weighted avg": {
+      "precision": 0.9313918919519424,
+      "recall": 0.8353658536585366,
+      "f1-score": 0.8727035719722884,
+      "support": 5084.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      182,
+      104
+    ],
+    [
+      733,
+      4065
+    ]
+  ],
+  "dummy_metrics": {
+    "roc_auc": 0.5,
+    "churn_average_precision": 0.9437450826121164,
+    "return_average_precision": 0.05625491738788355,
+    "brier_score": 0.053547666690396435,
+    "log_loss": 0.22004262056467502,
+    "accuracy": 0.9437450826121164,
+    "balanced_accuracy": 0.5
+  },
+  "recency_ranking_metrics": {
+    "roc_auc": 0.7903657409701594,
+    "churn_average_precision": 0.977848430691262,
+    "return_average_precision": 0.2963809867619272
+  },
+  "top_risk_ranking": [
+    {
+      "ranking": "logistic_regression",
+      "selected_devices": 509,
+      "expected_churners_selected": 497.0,
+      "precision_at_k": 0.9764243614931237,
+      "recall_at_k": 0.1035848270112547,
+      "lift_over_random": 1.0346272308943396,
+      "boundary_tie_size": 21
+    },
+    {
+      "ranking": "recency",
+      "selected_devices": 509,
+      "expected_churners_selected": 499.09399585921324,
+      "precision_at_k": 0.9805383022774327,
+      "recall_at_k": 0.10402125799483394,
+      "lift_over_random": 1.038986396160581,
+      "boundary_tie_size": 2415
+    }
+  ],
+  "limitations": [
+    "Earlier descriptive EDA included the full dataset.",
+    "Model and threshold selection used validation data, not test.",
+    "Devices are proxies for players.",
+    "Labels represent windowed inactivity, not permanent churn.",
+    "Retention intervention effectiveness has not been tested."
+  ]
+}

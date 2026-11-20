@@ -1,0 +1,3 @@
+ranking,selected_devices,expected_churners_selected,precision_at_k,recall_at_k,lift_over_random,boundary_tie_size
+logistic_regression,509,497.0,0.9764243614931237,0.1035848270112547,1.0346272308943396,21
+recency,509,499.09399585921324,0.9805383022774327,0.10402125799483394,1.038986396160581,2415

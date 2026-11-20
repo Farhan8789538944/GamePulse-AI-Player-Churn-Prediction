@@ -1,0 +1,5 @@
+{
+  "roc_auc": 0.7513365541737794,
+  "churn_average_precision": 0.9723105909558526,
+  "return_average_precision": 0.271703585578673
+}

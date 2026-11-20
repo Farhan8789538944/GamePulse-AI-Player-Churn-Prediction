@@ -1,0 +1,15 @@
+feature,mean_absolute_shap_log_odds
+missingindicator_max_gap_hours,0.1461052926412353
+missingindicator_mean_gap_hours,0.1461052926412353
+active_days_7d,0.11614864896204047
+days_since_last_play,0.10211329603052244
+activity_span_days,0.10211329603052231
+max_gap_hours,0.080567752930048
+mean_gap_hours,0.03510088693514718
+best_score_7d,0.03299468741076294
+plays_7d,0.016417647545279267
+plays_last_3d,0.008506695669895903
+plays_first_3d,0.007591003220958618
+play_count_change,0.0039015359045413063
+mean_score_7d,0.0011544374908082952
+score_std_7d,0.0008970509258323542
